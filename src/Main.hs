@@ -13,11 +13,9 @@ instance Show CreateGridError where
 type CreateGridM = Either CreateGridError
 
 isSquare :: Int -> Bool
-isSquare 1 = True
-isSquare 4 = True
-isSquare 9 = True
-isSquare 16 = True
-isSquare _ = False
+isSquare n = rt * rt == n
+    where rt = truncate (sqrt x)
+          x = fromIntegral n
 
 blankGrid :: Int -> CreateGridM SGrid
 blankGrid n | isSquare n = return (take n (repeat (take n (repeat Blank))))
