@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Monad.Except
+import Control.Monad.State
 import UI.NCurses
 
 data Sn = Blank | Sn Int
@@ -23,11 +24,22 @@ blankGrid :: Int -> Either CreateGridError SGrid
 blankGrid n | isSquare n = return (take n (repeat (take n (repeat Blank))))
             | otherwise = throwError IllegalGridSize
 
+data CursorState = CursorState {
+    row :: Int,
+    col :: Int
+}
+
 drawGrid :: SGrid -> Update ()
-drawGrid [] = return ()
-drawGrid (r:rs) = do
-    drawRow (length r) r
-    drawGrid rs
+drawGrid g = evalStateT (drawGridWithState g) CursorState {
+    row=0, col=0
+}
+
+drawGridWithState :: SGrid -> StateT CursorState Update ()
+drawGridWithState [] = return ()
+--drawGrid (r:rs) = do
+--    drawRow (length r) r
+--    moveCursor 0 1
+--    drawGrid rs
 
 drawRow l (n:ns) = do
     drawString "_"
@@ -42,7 +54,9 @@ main = runCurses $ do
     w <- defaultWindow
     updateWindow w $ do
         moveCursor 1 10
-        blankGrid 9 `catchError` drawError
+        case (blankGrid 9) of
+            Right a -> drawGrid a
+            Left e -> drawError e
     render
     waitFor w (\ev -> ev == EventCharacter 'q' || ev == EventCharacter 'Q')
 
