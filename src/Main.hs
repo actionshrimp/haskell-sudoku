@@ -25,8 +25,8 @@ blankGrid n | isSquare n = return (take n (repeat (take n (repeat Blank))))
             | otherwise = throwError IllegalGridSize
 
 data CursorState = CursorState {
-    row :: Int,
-    col :: Int
+    row :: Integer,
+    col :: Integer
 }
 
 drawGrid :: SGrid -> Update ()
@@ -36,13 +36,20 @@ drawGrid g = evalStateT (drawGridWithState g) CursorState {
 
 drawGridWithState :: SGrid -> StateT CursorState Update ()
 drawGridWithState [] = return ()
---drawGrid (r:rs) = do
---    drawRow (length r) r
---    moveCursor 0 1
---    drawGrid rs
+drawGridWithState (r:rs) = do
+    cur <- get
+    lift $ moveCursor (row cur) 0
+    drawRow r
+    modify (\s -> s { row = (row s + 1) })
+    drawGridWithState rs
 
-drawRow l (n:ns) = do
-    drawString "_"
+drawRow :: SRow -> StateT CursorState Update ()
+drawRow [] = return ()
+drawRow (n:ns) = do
+    cur <- get
+    lift $ drawString "_ "
+    modify (\s -> s { col = (col s + 1) })
+    drawRow ns
 
 drawError :: CreateGridError -> Update ()
 drawError e = do
@@ -53,7 +60,6 @@ main = runCurses $ do
     setEcho False
     w <- defaultWindow
     updateWindow w $ do
-        moveCursor 1 10
         case (blankGrid 9) of
             Right a -> drawGrid a
             Left e -> drawError e
