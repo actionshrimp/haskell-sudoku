@@ -30,26 +30,26 @@ data CursorState = CursorState {
 }
 
 drawGrid :: SGrid -> Update ()
-drawGrid g = evalStateT (drawGridWithState g) CursorState {
+drawGrid g = evalStateT (drawGridS g) CursorState {
     row=0, col=0
 }
 
-drawGridWithState :: SGrid -> StateT CursorState Update ()
-drawGridWithState [] = return ()
-drawGridWithState (r:rs) = do
+drawGridS :: SGrid -> StateT CursorState Update ()
+drawGridS [] = return ()
+drawGridS (r:rs) = do
     cur <- get
     lift $ moveCursor (row cur) 0
-    drawRow r
+    drawRowS r
     modify (\s -> s { row = (row s + 1) })
-    drawGridWithState rs
+    drawGridS rs
 
-drawRow :: SRow -> StateT CursorState Update ()
-drawRow [] = return ()
-drawRow (n:ns) = do
+drawRowS :: SRow -> StateT CursorState Update ()
+drawRowS [] = return ()
+drawRowS (n:ns) = do
     cur <- get
     lift $ drawString "_ "
     modify (\s -> s { col = (col s + 1) })
-    drawRow ns
+    drawRowS ns
 
 drawError :: CreateGridError -> Update ()
 drawError e = do
