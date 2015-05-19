@@ -6,7 +6,7 @@ import Data.Maybe
 import UI.NCurses
 import System.Environment
 import Data.Text (Text, unpack)
-import Text.Read (readMaybe)
+import Text.Read (readMaybe, readEither)
 
 data Sn = Blank | Sn Int
 type SRow = [Sn]
@@ -16,14 +16,13 @@ instance Show Sn where
     show Blank = "_"
     show (Sn n) = show n
 
-
 isSquare :: Int -> Bool
 isSquare n = rt * rt == n
     where rt = truncate . sqrt . fromIntegral $ n
 
-blankGrid :: Int -> Either CreateGridError SGrid
-blankGrid n | isSquare n = return (take n (repeat (take n (repeat Blank))))
-            | otherwise = throwError GridNotSquare
+--blankGrid :: Int -> Either CreateGridError SGrid
+--blankGrid n | isSquare n = return (take n (repeat (take n (repeat Blank))))
+--            | otherwise = throwError GridNotSquare
 
 cellH :: Integer
 cellH = 3
@@ -57,38 +56,35 @@ drawCell i j c = do
     moveCursor (i * cellH) ((j + 1) * cellW)
     drawLineV Nothing cellH
 
-drawError :: CreateGridError -> Update ()
-drawError e = do
-    drawString $ show e
+--drawError :: CreateGridError -> Update ()
+--drawError e = do
+--    drawString $ show e
 
-class SudokuError a where
-    errMsg :: a -> Text
-
-data CreateGridError = GridNotSquare
-showGridError :: CreateGridError -> Text
-showGridError GridNotSquare = "Sudoku grid must be a square number"
-
-instance SudokuError CreateGridError where
-    errMsg = showGridError
-
-instance Show CreateGridError where
-    show = unpack . showGridError
 
 liftEither :: Monad m => Either e a -> ExceptT e m a
 liftEither x = ExceptT (return x)
 
-sudoku :: (SudokuError e) => [String] -> ExceptT e IO ()
-sudoku [] = liftIO $ putStrLn "Please pass a number"
-sudoku (a:as) = do
-    case (readMaybe a :: Maybe Int) of
-        Just n -> liftIO $ putStrLn a
-        Nothing -> liftIO $ putStrLn ("Not a number: " ++ a)
-    return ()
+sudokuArgs :: [String] -> Either String Int
+sudokuArgs [] = Left "Please pass a grid size"
+sudokuArgs (a:as) = do
+    n <- case (readMaybe a :: Maybe Int) of
+            Nothing -> Left "Passed arg is not a number"
+            Just n -> Right n
+    n <- if (isSquare n)
+            then Right n
+            else Left "Passed arg is not a square number"
+    return n
+
+sudoku :: [String] -> ExceptT e IO ()
+sudoku args = do
+    case (sudokuArgs args) of
+        Right n -> lift $ putStrLn "yo"
+        Left x -> lift $ putStrLn x
 
 main :: IO ()
 main = do
     args <- getArgs
-    runExceptT $ ((sudoku args) :: ExceptT CreateGridError IO ())
+    runExceptT $ ((sudoku args) :: ExceptT String IO ())
     return ()
 
 --main :: IO ()
