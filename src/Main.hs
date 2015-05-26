@@ -20,15 +20,14 @@ isSquare :: Int -> Bool
 isSquare n = rt * rt == n
     where rt = truncate . sqrt . fromIntegral $ n
 
---blankGrid :: Int -> Either CreateGridError SGrid
---blankGrid n | isSquare n = return (take n (repeat (take n (repeat Blank))))
---            | otherwise = throwError GridNotSquare
+blankGrid :: Int -> SGrid
+blankGrid n = (take n (repeat (take n (repeat Blank))))
 
 cellH :: Integer
-cellH = 3
+cellH = 2
 
 cellW :: Integer
-cellW = 5
+cellW = 4
 
 drawGrid :: SGrid -> Update ()
 drawGrid g = do
@@ -56,11 +55,6 @@ drawCell i j c = do
     moveCursor (i * cellH) ((j + 1) * cellW)
     drawLineV Nothing cellH
 
---drawError :: CreateGridError -> Update ()
---drawError e = do
---    drawString $ show e
-
-
 liftEither :: Monad m => Either e a -> ExceptT e m a
 liftEither x = ExceptT (return x)
 
@@ -70,16 +64,27 @@ sudokuArgs (a:as) = do
     n <- case (readMaybe a :: Maybe Int) of
             Nothing -> Left "Passed arg is not a number"
             Just n -> Right n
-    n <- if (isSquare n)
+    sn <- if (isSquare n)
             then Right n
             else Left "Passed arg is not a square number"
-    return n
+    return sn
 
 sudoku :: [String] -> ExceptT e IO ()
 sudoku args = do
     case (sudokuArgs args) of
-        Right n -> lift $ putStrLn "yo"
+        Right n -> lift $ sudokuGrid n
         Left x -> lift $ putStrLn x
+
+-- Check out vty / vty-ui instead of ncurses?
+sudokuGrid n = let g = blankGrid n in 
+    runCurses $ do
+        setEcho False
+        w <- defaultWindow
+        updateWindow w $ do
+            drawGrid g
+        render
+        waitFor w (\ev -> ev == EventCharacter 'q'
+            || ev == EventCharacter 'Q')
 
 main :: IO ()
 main = do
@@ -101,11 +106,10 @@ main = do
 --        render
 --        waitFor w (\ev -> ev == EventCharacter 'q' || ev == EventCharacter 'Q')
 --
---waitFor :: Window -> (Event -> Bool) -> Curses ()
---waitFor w p = loop where
---    loop = do
---        ev <- getEvent w Nothing
---        case ev of
---            Nothing -> loop
---            Just ev' -> if p ev' then return () else loop
-
+waitFor :: Window -> (Event -> Bool) -> Curses ()
+waitFor w p = loop where
+    loop = do
+        ev <- getEvent w Nothing
+        case ev of
+            Nothing -> loop
+            Just ev' -> if p ev' then return () else loop
