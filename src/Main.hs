@@ -5,29 +5,21 @@ import Graphics.Vty
 import Control.Monad.State
 import Data.Default (def)
 
-import Grid (gridFor)
+import Render (renderState)
+import Update (GameEvent(Quit), toGameEvent, updateState)
 import GameState
 
-eventBufferSize :: Int
-eventBufferSize = 5
-
-space :: Image
-space = string defAttr "      "
-infoText :: Image
-infoText = space <-> string defAttr "Sudoku! " <-> space <-> string defAttr "Press q to exit"
-
-render :: GameState -> Picture
-render s = picForImage (gridFor (cells s) <|> space <|> infoText)
-
-type VtySudoku = StateT GameState IO ()
+type VtySudoku = StateT GS IO ()
 mainLoop :: Vty -> VtySudoku
 mainLoop vty = do
     s <- get
-    liftIO $ update vty $ render s
+    liftIO $ update vty $ renderState s
     e <- lift $ nextEvent vty
-    case e of
-        EvKey (KChar 'q') _ -> return ()
-        _ -> mainLoop vty
+    case toGameEvent e of
+        Quit -> return ()
+        a -> do
+            modify (updateState a)
+            mainLoop vty
 
 main :: IO ()
 main = do

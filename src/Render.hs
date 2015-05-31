@@ -1,4 +1,4 @@
-module Grid where
+module Render where
 
 import Data.List.Split (chunksOf)
 import Graphics.Vty
@@ -44,28 +44,49 @@ colBorderCenter = ht <-> blockVertBorder <-> x <-> blockVertBorder <-> x <-> blo
 bH :: Image
 bH = sep <|> horizCat (replicate 3 (h <|> sep)) 
 
-cell :: Sn -> Image
-cell c = string defAttr $ show c
+type RenderCell = (Bool, Sn)
+cell :: RenderCell -> Image
+cell (isSelected, n) = string attrs $ show n
+    where attrs | isSelected = defAttr `withBackColor` white 
+                                       `withForeColor` black
+                | otherwise = defAttr
 
-row :: (Sn, Sn, Sn) -> Image
+row :: (RenderCell, RenderCell, RenderCell) -> Image
 row (c1, c2, c3) = sep <|> horizCat (map cellWithSep [c1, c2, c3]) where
     cellWithSep c = cell c <|> sep
 
-block :: [(Sn, Sn, Sn)] -> Image
---hBlock (r1:r2:r3:_) = vertCat $ replicate 3 hBlockCells
+block :: [(RenderCell, RenderCell, RenderCell)] -> Image
 block rowBlock = vertCat (map row rowBlock)
 
-colBlocks :: [[Sn]] -> Image
+colBlocks :: [[RenderCell]] -> Image
 colBlocks [c1, c2, c3] = bH <-> vertCat (map blockAndBorder rowBlocks)
     where
         rows = zip3 c1 c2 c3
         rowBlocks = chunksOf 3 rows
         blockAndBorder rowBlock = block rowBlock <-> bH
-colBlocks _ = error "Expected 3 columns"
+colBlocks _ = error "Invalid cell data"
 
-gridFor :: [[Sn]] -> Image
-gridFor cols = colBorderLeft <|>
+cellsForRender :: [[Sn]] -> (Int, Int) -> [[RenderCell]]
+cellsForRender cs cur = updateCell renderCells cur isSelected
+    where renderCells = map (map ((,) False)) cs
+          isSelected (a, b) = (not a, b)
+
+gridFor :: GS -> Image
+gridFor GS {
+   cursor = cur,
+   cells = cs
+} = colBorderLeft <|>
                 colBlocks bc1 <|> colBorderCenter <|>
                 colBlocks bc2 <|> colBorderCenter <|>
                 colBlocks bc3 <|> colBorderRight
-    where [bc1, bc2, bc3] = chunksOf 3 cols
+    where 
+        [bc1, bc2, bc3] = chunksOf 3 $ cellsForRender cs cur
+
+space :: Image
+space = string defAttr "      "
+
+infoText :: Image
+infoText = space <-> string defAttr "Sudoku! " <-> space <-> string defAttr "Press q to exit"
+
+renderState :: GS -> Picture
+renderState s = picForImage (gridFor s <|> space <|> infoText)
