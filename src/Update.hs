@@ -13,6 +13,7 @@ toGameEvent (EvKey KRight []) = CurRight
 toGameEvent (EvKey KUp []) = CurUp
 toGameEvent (EvKey KDown []) = CurDown
 toGameEvent (EvKey KBS []) = PutSn S_
+toGameEvent (EvKey KDel []) = PutSn S_
 toGameEvent (EvKey (KChar '1') []) = PutSn S1
 toGameEvent (EvKey (KChar '2') []) = PutSn S2
 toGameEvent (EvKey (KChar '3') []) = PutSn S3
