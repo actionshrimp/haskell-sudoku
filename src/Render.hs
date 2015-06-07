@@ -44,9 +44,13 @@ colBorderCenter = ht <-> blockVertBorder <-> x <-> blockVertBorder <-> x <-> blo
 bH :: Image
 bH = sep <|> horizCat (replicate 3 (h <|> sep)) 
 
-type RenderCell = (Bool, Sn)
+entry :: SEntry -> String
+entry (Left a) = show a
+entry (Right a) = show a
+
+type RenderCell = (Bool, SEntry)
 cell :: RenderCell -> Image
-cell (isSelected, n) = string attrs $ show n
+cell (isSelected, n) = string attrs $ entry n
     where attrs | isSelected = defAttr `withBackColor` white 
                                        `withForeColor` black
                 | otherwise = defAttr
@@ -66,7 +70,7 @@ colBlocks [c1, c2, c3] = bH <-> vertCat (map blockAndBorder rowBlocks)
         blockAndBorder rowBlock = block rowBlock <-> bH
 colBlocks _ = error "Invalid cell data"
 
-cellsForRender :: [[Sn]] -> (Int, Int) -> [[RenderCell]]
+cellsForRender :: [[SEntry]] -> (Int, Int) -> [[RenderCell]]
 cellsForRender cs cur = updateCell renderCells cur isSelected
     where renderCells = map (map ((,) False)) cs
           isSelected (a, b) = (not a, b)
