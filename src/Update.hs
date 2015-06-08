@@ -3,8 +3,9 @@ module Update where
 import Graphics.Vty
 import GameState
 import Rules (valid)
+import Generate
 
-data GameEvent = Quit | CurLeft | CurRight | CurUp | CurDown | PutSn SEntry | DoNothing
+data GameEvent = Quit | CurLeft | CurRight | CurUp | CurDown | PutSn SEntry | DoNothing | GenGrid
 
 toGameEvent :: Event -> GameEvent
 toGameEvent (EvKey (KChar 'q') []) = Quit
@@ -24,6 +25,7 @@ toGameEvent (EvKey (KChar '6') []) = PutSn (Right S6)
 toGameEvent (EvKey (KChar '7') []) = PutSn (Right S7)
 toGameEvent (EvKey (KChar '8') []) = PutSn (Right S8)
 toGameEvent (EvKey (KChar '9') []) = PutSn (Right S9)
+toGameEvent (EvKey (KChar 'g') []) = GenGrid
 toGameEvent _ = DoNothing
 
 updateState :: GameEvent -> GS -> GS
@@ -35,4 +37,8 @@ updateState (PutSn a) s@(GS { cells=cs, cursor=cur }) = s {
     cells = let updated = setCell cs cur a in
         if valid updated then updated else cs
 }
+--updateState GenGrid s@(GS { seed=seed }) = s {
+--    cells = head $ [
+--}
+
 updateState _ s = s
